@@ -1,11 +1,13 @@
 using System.Numerics;
 using OpenTK.GLControl;
 using OpenTK.Graphics.OpenGL4;
-using OpenTK.Mathematics;
 using Pfim;
 using DragonNestResearchViewer.Core;
 using NumMat = System.Numerics.Matrix4x4;
+using NumVec3 = System.Numerics.Vector3;
+using NumVec2 = System.Numerics.Vector2;
 using TkMat = OpenTK.Mathematics.Matrix4;
+using TkMathHelper = OpenTK.Mathematics.MathHelper;
 
 namespace DragonNestResearchViewer.Rendering;
 
@@ -33,7 +35,7 @@ public sealed class GlViewport : UserControl
     readonly List<GpuPart> _parts = [];
 
     float _yaw = -25f, _pitch = 15f, _distance = 5f;
-    Vector3 _center = Vector3.Zero;
+    NumVec3 _center = NumVec3.Zero;
     Point _lastMouse;
     MouseButtons _dragButton;
 
@@ -185,10 +187,10 @@ public sealed class GlViewport : UserControl
             var p = gp.Part;
             for (int i=0;i<p.Vertices.Length;i++)
             {
-                Vector3 pos = p.Vertices[i], normal = p.Normals[i];
+                NumVec3 pos = p.Vertices[i], normal = p.Normals[i];
                 if (pose != null && p.RigIndices.Length == p.Vertices.Length && p.RigWeights.Length == p.Vertices.Length)
                 {
-                    Vector3 sp = Vector3.Zero, sn = Vector3.Zero;
+                    NumVec3 sp = NumVec3.Zero, sn = NumVec3.Zero;
                     var weights = p.RigWeights[i];
                     float[] ws = [weights.X,weights.Y,weights.Z,weights.W];
                     float total = 0;
@@ -199,16 +201,16 @@ public sealed class GlViewport : UserControl
                         if (local<0 || local>=p.RigNames.Length) continue;
                         if (!_mesh.BoneIndexByName.TryGetValue(p.RigNames[local],out int bi)) continue;
                         var skinMat = _mesh.Bones[bi].InverseBindGlobal * pose[bi];
-                        sp += Vector3.Transform(pos,skinMat)*w;
-                        sn += Vector3.TransformNormal(normal,skinMat)*w;
+                        sp += NumVec3.Transform(pos,skinMat)*w;
+                        sn += NumVec3.TransformNormal(normal,skinMat)*w;
                         total += w;
                     }
-                    if (total>0) { pos=sp/total; normal=Vector3.Normalize(sn); }
+                    if (total>0) { pos=sp/total; normal=NumVec3.Normalize(sn); }
                 }
                 int o=i*8;
                 gp.Dynamic[o]=pos.X; gp.Dynamic[o+1]=pos.Y; gp.Dynamic[o+2]=pos.Z;
                 gp.Dynamic[o+3]=normal.X; gp.Dynamic[o+4]=normal.Y; gp.Dynamic[o+5]=normal.Z;
-                var uv = i<p.UV0.Length ? p.UV0[i] : Vector2.Zero;
+                var uv = i<p.UV0.Length ? p.UV0[i] : NumVec2.Zero;
                 gp.Dynamic[o+6]=uv.X; gp.Dynamic[o+7]=uv.Y;
             }
             GL.BindBuffer(BufferTarget.ArrayBuffer,gp.Vbo);
@@ -227,7 +229,7 @@ public sealed class GlViewport : UserControl
         var view = TkMat.LookAt(new OpenTK.Mathematics.Vector3(eye.X,eye.Y,eye.Z),
             new OpenTK.Mathematics.Vector3(_center.X,_center.Y,_center.Z), OpenTK.Mathematics.Vector3.UnitY);
         float aspect=Math.Max(0.01f,_gl.Width/(float)Math.Max(1,_gl.Height));
-        var projection=TkMat.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(50),aspect,Math.Max(0.001f,_distance/1000f),Math.Max(100f,_distance*50f));
+        var projection=TkMat.CreatePerspectiveFieldOfView(TkMathHelper.DegreesToRadians(50),aspect,Math.Max(0.001f,_distance/1000f),Math.Max(100f,_distance*50f));
         var mvp=view*projection;
 
         GL.UseProgram(_program);
@@ -262,8 +264,8 @@ public sealed class GlViewport : UserControl
         for(int i=-n;i<=n;i++)
         {
             float x=i*step;
-            AddLine(verts,new Vector3(x,0,-n*step),new Vector3(x,0,n*step));
-            AddLine(verts,new Vector3(-n*step,0,x),new Vector3(n*step,0,x));
+            AddLine(verts,new NumVec3(x,0,-n*step),new NumVec3(x,0,n*step));
+            AddLine(verts,new NumVec3(-n*step,0,x),new NumVec3(n*step,0,x));
         }
         DrawLines(verts,mvp,new OpenTK.Mathematics.Vector4(0.24f,0.27f,0.31f,1));
     }
@@ -289,14 +291,14 @@ public sealed class GlViewport : UserControl
             foreach(var b in _mesh.Bones)
             {
                 var p=Translation(b.BindGlobal);
-                AddLine(verts,p,p+Vector3.UnitY*Math.Max(0.01f,_distance*0.03f));
+                AddLine(verts,p,p+NumVec3.UnitY*Math.Max(0.01f,_distance*0.03f));
             }
         }
         DrawLines(verts,mvp,new OpenTK.Mathematics.Vector4(1f,0.65f,0.05f,1));
     }
 
-    static Vector3 Translation(NumMat m)=>new(m.M41,m.M42,m.M43);
-    static void AddLine(List<float> v,Vector3 a,Vector3 b)
+    static NumVec3 Translation(NumMat m)=>new(m.M41,m.M42,m.M43);
+    static void AddLine(List<float> v,NumVec3 a,NumVec3 b)
     {
         foreach(var p in new[]{a,b}) { v.Add(p.X);v.Add(p.Y);v.Add(p.Z);v.Add(0);v.Add(1);v.Add(0);v.Add(0);v.Add(0); }
     }
@@ -313,10 +315,10 @@ public sealed class GlViewport : UserControl
         GL.DrawArrays(PrimitiveType.Lines,0,verts.Count/8);
     }
 
-    Vector3 CameraPosition()
+    NumVec3 CameraPosition()
     {
         float yaw=MathF.PI*_yaw/180f,pitch=MathF.PI*_pitch/180f;
-        var dir=new Vector3(MathF.Cos(pitch)*MathF.Cos(yaw),MathF.Sin(pitch),MathF.Cos(pitch)*MathF.Sin(yaw));
+        var dir=new NumVec3(MathF.Cos(pitch)*MathF.Cos(yaw),MathF.Sin(pitch),MathF.Cos(pitch)*MathF.Sin(yaw));
         return _center-dir*_distance;
     }
 
@@ -327,7 +329,7 @@ public sealed class GlViewport : UserControl
         else if(_dragButton==MouseButtons.Middle||_dragButton==MouseButtons.Right)
         {
             float s=_distance*0.0025f;
-            _center+=new Vector3(-dx*s,dy*s,0);
+            _center+=new NumVec3(-dx*s,dy*s,0);
         }
         _gl.Invalidate();
     }
