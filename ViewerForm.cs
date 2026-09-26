@@ -15,7 +15,7 @@ public sealed class ViewerForm : Form
     readonly Button _pause = new() { Text="Ⅱ Pause", AutoSize=true };
     readonly Button _stop = new() { Text="■ Stop", AutoSize=true };
     readonly CheckBox _loop = new() { Text="Loop", Checked=true, AutoSize=true, Padding=new Padding(8,7,8,0) };
-    readonly CheckBox _skeleton = new() { Text="Skeleton", Checked=true, AutoSize=true, Padding=new Padding(8,7,8,0) };
+    readonly CheckBox _skeleton = new() { Text="Skeleton", Checked=false, AutoSize=true, Padding=new Padding(8,7,8,0) };\n    readonly Button _fit = new() { Text="Modeli Ortala", AutoSize=true };
     readonly CheckBox _grid = new() { Text="Grid", Checked=true, AutoSize=true, Padding=new Padding(8,7,8,0) };
     readonly CheckBox _wire = new() { Text="Wireframe", AutoSize=true, Padding=new Padding(8,7,8,0) };
     readonly System.Windows.Forms.Timer _timer = new() { Interval=16 };
@@ -56,7 +56,7 @@ public sealed class ViewerForm : Form
         main.Panel1.Controls.Add(left);
 
         var controls=new FlowLayoutPanel{Dock=DockStyle.Top,Height=40,FlowDirection=FlowDirection.LeftToRight,WrapContents=false,Padding=new Padding(4)};
-        controls.Controls.AddRange([_play,_pause,_stop,_loop,_skeleton,_grid,_wire,_frameLabel]);
+        controls.Controls.AddRange([_play,_pause,_stop,_fit,_loop,_skeleton,_grid,_wire,_frameLabel]);
 
         var timelinePanel=new Panel{Dock=DockStyle.Bottom,Height=82};
         timelinePanel.Controls.Add(_timeline);
@@ -72,10 +72,10 @@ public sealed class ViewerForm : Form
         _resources.AfterSelect+=ResourcesAfterSelect;
         _animations.SelectedIndexChanged+=AnimationsSelectedIndexChanged;
         _timeline.Scroll+=(_,_)=>SetFrame(_timeline.Value);
-        _play.Click+=(_,_)=>StartPlayback();
+        _play.Click+=(_,_)=>StartPlayback();\n        _fit.Click+=(_,_)=>_viewport.FitToModel();
         _pause.Click+=(_,_)=>_playing=false;
-        _stop.Click+=(_,_)=>{_playing=false;SetFrame(0);};
-        _skeleton.CheckedChanged+=(_,_)=>_viewport.ShowSkeleton=_skeleton.Checked;
+        _stop.Click+=(_,_)=>{_playing=false;_viewport.UseAnimation=false;SetFrame(0);};
+        _skeleton.CheckedChanged+=(_,_)=>{_viewport.ShowSkeleton=_skeleton.Checked;_viewport.Invalidate();};
         _grid.CheckedChanged+=(_,_)=>_viewport.ShowGrid=_grid.Checked;
         _wire.CheckedChanged+=(_,_)=>_viewport.Wireframe=_wire.Checked;
         _timer.Tick+=TimerTick;
@@ -165,7 +165,7 @@ public sealed class ViewerForm : Form
         if(skin==null)_skin=null;
         _viewport.SetModel(_mesh,skin,Path.GetDirectoryName(path)!);
         _loadedModelPath=path;
-        _status.Text=$"Model yüklendi: {_mesh.Parts.Count} mesh, {_mesh.Bones.Count} bone";
+        _status.Text=$"Model yüklendi: {_mesh.Parts.Count} mesh, {_mesh.Bones.Count} bone | {_viewport.TextureSummary()}";
         _inspector.Text=$"MSH: {Path.GetFileName(path)}\r\nVersion: {_mesh.Version}\r\nMeshes: {_mesh.Parts.Count}\r\nBones: {_mesh.Bones.Count}\r\nBounds: {_mesh.BoundsMin} -> {_mesh.BoundsMax}\r\n\r\n"+
             string.Join("\r\n",_mesh.Parts.Select((p,i)=>$"[{i}] {p.Name} | Vert={p.Vertices.Length} | Tri={p.Indices.Length/3} | Rig={p.RigNames.Length}"));
     }
@@ -175,7 +175,7 @@ public sealed class ViewerForm : Form
         if(_mesh==null)throw new InvalidOperationException("Önce bir SKN/MSH model yükleyin.");
         _status.Text="ANI okunuyor...";
         _ani=DnParsers.LoadAni(path);
-        _viewport.SetAnimation(_ani);
+        _viewport.SetAnimation(_ani);\n        _viewport.UseAnimation=false;
         _animations.Items.Clear();
         foreach(var n in _ani.Names)_animations.Items.Add(n);
         if(_animations.Items.Count>0)_animations.SelectedIndex=0;
