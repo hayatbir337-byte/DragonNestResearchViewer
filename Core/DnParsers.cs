@@ -167,7 +167,11 @@ public static class DnParsers
             part.Vertices = new Vector3[verts];
             part.Normals = new Vector3[verts];
             for (int x = 0; x < verts; x++) part.Vertices[x] = ToViewer(r.ReadVector3());
-            for (int x = 0; x < verts; x++) part.Normals[x] = Vector3.Normalize(ToViewer(r.ReadVector3()));
+            for (int x = 0; x < verts; x++)
+            {
+                var n = ToViewer(r.ReadVector3());
+                part.Normals[x] = n.LengthSquared() > 0.000001f ? Vector3.Normalize(n) : Vector3.UnitY;
+            }
 
             for (int set = 0; set < uvSets; set++)
             {
