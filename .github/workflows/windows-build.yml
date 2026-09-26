@@ -1,0 +1,27 @@
+name: Windows V1 Build
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore
+        run: dotnet restore
+      - name: Build
+        run: dotnet build -c Release --no-restore
+      - name: Publish Windows x64
+        run: dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -o publish
+      - name: Upload V1
+        uses: actions/upload-artifact@v4
+        with:
+          name: DragonNestResearchViewer-V1-win-x64
+          path: publish/
+          if-no-files-found: error
