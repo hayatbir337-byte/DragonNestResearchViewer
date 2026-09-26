@@ -58,7 +58,7 @@ public sealed class ViewerForm : Form
 
     public ViewerForm()
     {
-        Text = "Dragon Nest Research Viewer V1.1";
+        Text = "Dragon Nest Research Viewer V1.2";
         Width = 1500;
         Height = 900;
         MinimumSize = new Size(1050, 680);
@@ -252,7 +252,11 @@ public sealed class ViewerForm : Form
                     InspectDds(path);
                     break;
                 default:
-                    ShowInfo($"{Path.GetFileName(path)}\r\n\r\nDosya Resource Browser içinde bulundu.\r\nBu format V2 parser kapsamındadır.");
+                    _playing = false;
+                    _viewport.ClearScene();
+                    _animations.Items.Clear();
+                    ResetFrameUi();
+                    ShowInfo($"{Path.GetFileName(path)}\r\n\r\nBu format henüz 3D görüntüleme kapsamında değil.\r\nViewport temizlendi; önceki model ekranda bırakılmaz.");
                     _status.Text = Path.GetFileName(path);
                     break;
             }
@@ -449,6 +453,7 @@ public sealed class ViewerForm : Form
 
     void InspectDds(string path)
     {
+        _playing = false;
         _status.Text = "DDS okunuyor...";
 
         using var image = Pfimage.FromFile(path);
