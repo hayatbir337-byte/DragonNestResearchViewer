@@ -1,4 +1,5 @@
-using System.Drawing.Imaging;
+using DrawingPixelFormat = System.Drawing.Imaging.PixelFormat;
+using ImageLockMode = System.Drawing.Imaging.ImageLockMode;
 using System.Runtime.InteropServices;
 using DragonNestResearchViewer.Core;
 using DragonNestResearchViewer.Rendering;
@@ -471,21 +472,21 @@ public sealed class ViewerForm : Form
 
     static Bitmap PfimToBitmap(IImage image)
     {
-        PixelFormat format;
+        DrawingPixelFormat format;
         int bytesPerPixel;
 
         switch (image.Format)
         {
-            case ImageFormat.Rgba32:
-                format = PixelFormat.Format32bppArgb;
+            case Pfim.ImageFormat.Rgba32:
+                format = DrawingPixelFormat.Format32bppArgb;
                 bytesPerPixel = 4;
                 break;
-            case ImageFormat.Rgb24:
-                format = PixelFormat.Format24bppRgb;
+            case Pfim.ImageFormat.Rgb24:
+                format = DrawingPixelFormat.Format24bppRgb;
                 bytesPerPixel = 3;
                 break;
-            case ImageFormat.Rgb8:
-                var gray = new Bitmap(image.Width, image.Height, PixelFormat.Format24bppRgb);
+            case Pfim.ImageFormat.Rgb8:
+                var gray = new Bitmap(image.Width, image.Height, DrawingPixelFormat.Format24bppRgb);
                 for (int y = 0; y < image.Height; y++)
                 {
                     int srcRow = y * image.Stride;
